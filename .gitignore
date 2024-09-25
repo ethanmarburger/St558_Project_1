@@ -4,3 +4,6 @@
 .Ruserdata
 
 .venv/
+*.code-workspace
+requirements.txt
+*.swp
