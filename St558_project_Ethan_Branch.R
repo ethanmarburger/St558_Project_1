@@ -79,7 +79,7 @@ print(pums_data)
 
 PUMS_multi_year <- function(geography, optional_vars, years,
                             key = Sys.getenv("CENSUS_API_KEY"),
-                            state = "*", country = NULL, zcta = NULL,
+                            state = "*", county = NULL, zcta = NULL,
                             survey = "acs1", show_call = FASLE) {
   
   # Empty list to store data for each year
@@ -108,10 +108,13 @@ PUMS_multi_year <- function(geography, optional_vars, years,
   # Combing all yearly data into a tibble
   years_tibble <- bind_rows(list_data)
   
+  # Added a "census" class as later instructed
+  class(years_tibble) <- c("census", class(years_tibble))
+  
   return(years_tibble)
 }
 
-# Testing multi year PUMS function
+# Testing PUMS_multi_year function
 
 years <- c(2022, 2021) # 2020 does not exist
 
@@ -119,3 +122,21 @@ PUMS_multi_year_test <- PUMS_multi_year(geography, user_vars, years, key, state)
 print(PUMS_multi_year_test)
 
 print(tail(PUMS_multi_year_test)) # Checking for the 2021 variable
+
+#------------------------------------------------------------------------------
+
+# Writing a Generic Function for Summarizing
+
+#Run these in your console:
+plot.function #what is used for a class = function
+getS3method("plot","data.frame") #what is used for a class = data frame
+plot
+
+# Added additional class of "census" to years_tibble in PUMS_multi_year function
+
+# Census summary function
+
+summary.census <- function(tibble_class_census, num_veriables, cat_variables) {
+  num_variables <- num_variables != PWGTP
+  cat_variables <- cat_variables
+}
