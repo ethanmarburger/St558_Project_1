@@ -136,7 +136,19 @@ plot
 
 # Census summary function
 
-summary.census <- function(tibble_class_census, num_veriables, cat_variables) {
-  num_variables <- num_variables != PWGTP
-  cat_variables <- cat_variables
-}
+summary.census <- function(tibble_class_census, 
+                           numeric_veriables, 
+                           categorical_variables) {
+  
+  # Selecting numeric columns and excluding PWGTP
+  numeric_veriables <- setdiff(names(select_if(tibble_class_census, 
+                                               is.numeric)),"PwGTP")
+  
+  # Selecting categorical columns
+  categorical_variables <- names(select_if(tibble_class_census, 
+                                           is.character))
+  
+  # List to store census summary results 
+  census_summary_results <- list()
+
+} 
