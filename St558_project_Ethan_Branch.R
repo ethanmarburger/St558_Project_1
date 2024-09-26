@@ -180,7 +180,8 @@ summary.census <- function(tibble_class_census,
     }
     
     # Storing results in my empty list
-    census_summary_results[[num_variables]] <- list(mean = mean_value, sd = sd_value)
+    census_summary_results[[num_variables]] <- list(mean = mean_value, 
+                                                    sd = sd_value)
   }
   
   # Categorical summarizer 
@@ -191,3 +192,6 @@ summary.census <- function(tibble_class_census,
   
   return(census_summary_results)
 } 
+
+# Testing summarizer function
+
