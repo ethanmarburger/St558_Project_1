@@ -137,18 +137,57 @@ plot
 # Census summary function
 
 summary.census <- function(tibble_class_census, 
-                           numeric_veriables, 
-                           categorical_variables) {
+                           numeric_veriables = NULL, 
+                           categorical_variables = NULL) {
   
   # Selecting numeric columns and excluding PWGTP
-  numeric_veriables <- setdiff(names(select_if(tibble_class_census, 
-                                               is.numeric)),"PwGTP")
+  if (is.null(numeric_veriables)) {
+    numeric_veriables <- names(select_if(tibble_class_census, is.numeric))
+    numeric_veriables <- setdiff(numeric_variables, "PWGTP")
+  }
   
   # Selecting categorical columns
+  if (is.null(categorical_variables)) {
   categorical_variables <- names(select_if(tibble_class_census, 
                                            is.character))
+  }
   
   # List to store census summary results 
   census_summary_results <- list()
 
+  # Function to obtain sample mean
+  sample_mean <- function(numeric_vector, weighted_vector) {
+    sum(numeric_vector * weighted_vector) / sum(weighted_vector)
+  }
+  
+  # Function to find standard deviation
+  sample_sd <- function(numeric_vector, weighted_vector, sample_mean) {
+    sqrt(sum((numeric_vector^2) * weighted_vector) / sum(weighted_vector) - sample_mean^2)
+  }
+  
+  # Numeric summarizer
+  for (num_variables in numeric_variables) {
+    variable_data <- tibble_class_census[[num_variables]]
+    
+    # Handling additional Weighted vector from PWGTP
+    if (!is.null(weighted_vector)) {
+      mean_value <- sample_mean(variable_data, weighted_vector)
+      sd_value <- sample_sd(variable_data, weighted_vector, mean_value)
+    }
+    else {
+      mean_value <- mean(variable_data)
+      sd_value <- sd(variable_data)
+    }
+    
+    # Storing results in my empty list
+    census_summary_results[[num_variables]] <- list(mean = mean_value, sd = sd_value)
+  }
+  
+  # Categorical summarizer 
+  for (cat_variables in categorical_variables) {
+    counts <- table(census_summary_results[[cat_variables]])
+    census_summary_results[[cat_variables]] <- counts
+  }
+  
+  return(census_summary_results)
 } 

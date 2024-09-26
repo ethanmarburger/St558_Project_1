@@ -6,5 +6,3 @@ editor: visual
 ---
 
 ## Project 1
-
-Hey David!
