@@ -42,20 +42,14 @@ get_PUMS <- function(geography, optional_vars, key=sys.getenv("CENSUS_API_KEY"),
   
   #Data Checks
   if (status_code(response) == 200){
-    allowed_vars <- c("PWGTP","MAR","AGEP", "GASP", "GRPIP", "JWAP", "JWDP", "JWMNP","FER","HHL","HISPEED","JWAP","JWDP","JWTRNS","SCH","SCHL","SEX")
+    #specify vars to return
+    allowed_vars <- c("PWGTP","MAR","AGEP","GASP","GRPIP","JWAP","JWDP","JWMNP","FER","HHL","HISPEED","JWAP","JWDP","JWTRNS","SCH","SCHL","SEX")
     optional_vars <- unlist(strsplit(optional_vars, ","))
     if (!all(optional_vars %in% allowed_vars)) {
       stop("User provided variable list only allows for variables: PWGTP,MAR,AGEP,GASP,GRPIP,JWAP,JWDP,JWMNP,FER,HHL,HISPEED,JWAP,JWDP,JWTRNS,SCH,SCHL,and SEX")
     }
     else{
-      
-      parsed_data <- as_tibble(fromJSON(rawToChar(response$content)))
-      
-      #set column names from first row
-      col_names <- parsed_data[1,]
-      parsed_data <- parsed_data[-1,]
-      parsed_data <- setNames(parsed_data, col_names) 
-      return(parsed_data)
+      return_tibble(response$content)
     }
   }
   else {
@@ -64,12 +58,23 @@ get_PUMS <- function(geography, optional_vars, key=sys.getenv("CENSUS_API_KEY"),
   
 }
 
+return_tibble <- function (content)
+{
+  parsed_data <- as_tibble(fromJSON(rawToChar(content)))
+  
+  #set column names from first row
+  col_names <- parsed_data[1,]
+  parsed_data <- parsed_data[-1,]
+  parsed_data <- setNames(parsed_data, col_names) 
+  return(parsed_data)  
+}
 
 #Test-9001
+
 geography <- "state"
 user_vars <- "SEX,PWGTP,MAR,HISPEED"
 key <- "bdb1f6ff2e4982a1da64cd526532aa92dca5581c"
-state <- "37"  # North Carolina
+state <- "05"  # Arkansas
 year <- 2022
 
 pums_data <- get_PUMS(geography,user_vars,key,year,state)
