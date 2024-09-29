@@ -21,8 +21,8 @@ get_PUMS <- function(geography, optional_vars, key=sys.getenv("CENSUS_API_KEY"),
                      state = "*",county = NULL, zcta = NULL, survey="acs1", show_call = FALSE){
   #get base URL
   baseURL <- paste("https://api.census.gov/data",
-                as.character(year), "acs",
-                survey, "pums", sep = "/")
+                      year, "acs",
+                      survey, "pums", sep = "/")
   
   #get parameters from function args
   paramsURL <- paste0("?get=", optional_vars, "&for=", geography, ":", state, "&key=", key)
@@ -62,7 +62,7 @@ get_PUMS <- function(geography, optional_vars, key=sys.getenv("CENSUS_API_KEY"),
 geography <- "state"
 user_vars <- "SEX,PWGTP,MAR,HISPEED"
 key <- "bdb1f6ff2e4982a1da64cd526532aa92dca5581c"
-state <- "37"  # North Carolina
+state <- "05"  # 
 year <- 2022
 
 pums_data <- get_PUMS(geography,user_vars,key,year,state)
