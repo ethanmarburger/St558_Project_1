@@ -41,6 +41,6 @@ get_var_metadata <- function(var_list){
 
 
 #Test-9002
-user_vars <- "PWGTP,SEX,AGEP,GASP,GRPIP,JWAP,JWDP,JWMNP"
-x <- get_var_metadata(user_vars)
-print(x)
+# user_vars <- "PWGTP,SEX,AGEP,GASP,GRPIP,JWAP,JWDP,JWMNP"
+# x <- get_var_metadata(user_vars)
+# print(x)

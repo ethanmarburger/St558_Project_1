@@ -51,12 +51,4 @@ get_PUMS <- function(geography, user_vars, key=sys.getenv("CENSUS_API_KEY"),
 
 #Test-9001
 
-geography <- "state"
-user_vars <- "SEX,FER,HHL,PWGTP,AGEP,GASP,GRPIP,JWAP,JWDP,JWMNP"
-# user_vars <- "SEX,PWGTP,MAR,HISPEED"
-key <- "bdb1f6ff2e4982a1da64cd526532aa92dca5581c"
-state <- "05"  # Arkansas
-year <- 2022
 
-pums_data <- get_PUMS_minimal(geography,user_vars,key,year,state)
-print(pums_data)

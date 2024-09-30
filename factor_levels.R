@@ -70,11 +70,11 @@ set_factor_levels_types <- function(data_tibble, var_tibbs) {
 
 #Checks
 # x <- get_pums_factor_levels("SEX,FER,HHL,PWGTP,AGEP")
-devdata_tibbs <- pums_data$api_data
+# devdata_tibbs <- pums_data$api_data
 # glimpse(devdata_tibbs)
-devvar_tibbs <- pums_data$api_metadata
+# devvar_tibbs <- pums_data$api_metadata
 # glimpse(devvar_tibbs)
-devx <- set_factor_levels_types(devdata_tibbs, devvar_tibbs)
+# devx <- set_factor_levels_types(devdata_tibbs, devvar_tibbs)
 
 # print(unique(devx$HHL))
 # print(unique(devx$SEX))

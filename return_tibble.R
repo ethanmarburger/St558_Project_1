@@ -17,6 +17,3 @@ return_tibble <- function (content)
   parsed_data <- setNames(parsed_data, col_names) 
   return(parsed_data)  
 }
-
-
-
