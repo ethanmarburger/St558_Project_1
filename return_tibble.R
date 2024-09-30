@@ -7,37 +7,37 @@ library(httr)
 
 
 #check vars and return a tibble containing metadata
-check_vars <- function(var_list){
-  spec_vars <- tibble(varname = c("PWGTP","AGEP","GASP","GRPIP","JWAP","JWDP",
-                                  "JWMNP","FER","HHL","HISPEED","JWTRNS","SCH",
-                                  "SCHL","SEX"),
-                      type = c("num","num","num","num","num","num","num","chr"
-                               ,"chr","chr","chr","chr","chr","chr"),
-                      required = c(TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,
-                                   FALSE,FALSE,FALSE,FALSE,FALSE,TRUE),
-                      dt = c(FALSE,FALSE,FALSE,FALSE,TRUE,TRUE,TRUE,FALSE,FALSE,FALSE,
-                             FALSE,FALSE,FALSE,FALSE) 
-  )
-  
-  
-  
-  #unlist user specified vars to vector
-  var_list <- unlist(str_split(var_list,","))
-  
-  required_vars <- spec_vars |>
-    filter(required == TRUE) |>
-    pull(varname)
-  
-  missing_vars <- required_vars[!(required_vars %in% var_list)]
-  
-  if (length(missing_vars) > 0){
-    return( paste("Missing required vars in function call: ", paste(missing_vars, collapse = ", ")))
-  }
-  else{
-    var_tibbs <- spec_vars |> filter(varname %in% var_list)
-    return(var_tibbs)
-  }
-}
+# check_vars <- function(var_list){
+#   spec_vars <- tibble(varname = c("PWGTP","AGEP","GASP","GRPIP","JWAP","JWDP",
+#                                   "JWMNP","FER","HHL","HISPEED","JWTRNS","SCH",
+#                                   "SCHL","SEX"),
+#                       type = c("num","num","num","num","num","num","num","chr"
+#                                ,"chr","chr","chr","chr","chr","chr"),
+#                       required = c(TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,
+#                                    FALSE,FALSE,FALSE,FALSE,FALSE,TRUE),
+#                       dt = c(FALSE,FALSE,FALSE,FALSE,TRUE,TRUE,TRUE,FALSE,FALSE,FALSE,
+#                              FALSE,FALSE,FALSE,FALSE) 
+#   )
+#   
+#   
+#   
+#   #unlist user specified vars to vector
+#   var_list <- unlist(str_split(var_list,","))
+#   
+#   required_vars <- spec_vars |>
+#     filter(required == TRUE) |>
+#     pull(varname)
+#   
+#   missing_vars <- required_vars[!(required_vars %in% var_list)]
+#   
+#   if (length(missing_vars) > 0){
+#     return( paste("Missing required vars in function call: ", paste(missing_vars, collapse = ", ")))
+#   }
+#   else{
+#     var_tibbs <- spec_vars |> filter(varname %in% var_list)
+#     return(var_tibbs)
+#   }
+# }
 
 
 #return API query as tibble
@@ -50,42 +50,6 @@ return_tibble <- function (content)
   parsed_data <- parsed_data[-1,]
   parsed_data <- setNames(parsed_data, col_names) 
   return(parsed_data)  
-}
-
-#get factor levels and set types
-set_factor_levels_types <- function(var_tibbs, data_tibble) {
-  # Process character variables and set them as factors with levels
-  chr_vars <- var_tibbs %>% filter(type == "chr") %>% pull(varname)
-  
-  # Loop through chr_vars and fetch levels for factor variables
-  data_tibble <- data_tibble %>%
-    mutate(across(all_of(chr_vars), ~ {
-      var_name <- cur_column()  # Get the current column name
-      url <- paste0("https://api.census.gov/data/2022/acs/acs1/pums/variables/", var_name, ".json")
-      
-      response <- GET(url)
-      if (status_code(response) == 200) {
-        data <- fromJSON(content(response, "text", encoding = "UTF-8"))
-        if (!is.null(data$values) && "item" %in% names(data$values)) {
-          levels <- data$values$item
-          return(factor(.x, levels = levels))
-        } else {
-          warning(paste("Levels for", var_name, "not found in API response"))
-          return(.x)  # Return unchanged column
-        }
-      } else {
-        warning(paste("Failed to fetch data for", var_name, ": HTTP status", status_code(response)))
-        return(.x)  # Return unchanged column
-      }
-    }))
-  
-  # Process numeric variables and convert them to numeric
-  num_vars <- var_tibbs %>% filter(type == "num") %>% pull(varname)
-  
-  data_tibble <- data_tibble %>%
-    mutate(across(all_of(num_vars), as.numeric))
-  
-  return(data_tibble)
 }
 
 
@@ -114,20 +78,25 @@ get_PUMS_minimal <- function(geography, user_vars, key=sys.getenv("CENSUS_API_KE
   
   response <- httr::GET(apiURL)
   
-  # Convert API response to a tibble
-  parsed_data <- return_tibble(response$content)
+  # Convert API response to a tibble |>
+  #set factor levels and convert data types
+  var_metadata <- get_var_metadata(user_vars)
+  parsed_data <- return_tibble(response$content) 
+  # |> 
+  #   clean_names()
+  
+  #return a list with two tibbles
+  api_data <- list(api_data = parsed_data, api_metadata = var_metadata)
   
   # Set factor levels and types for the tibble
-  parsed_data <- set_factor_levels_types(var_check, parsed_data)
-  
-  return(parsed_data)
-  
+  parsed_data <- set_factor_levels_types(parsed_data, var_metadata)
+  return(api_data)
 }
   
 #Test-9001
 
 geography <- "state"
-user_vars <- "SEX,PWGTP,AGEP,GASP,GRPIP,JWAP,JWDP,JWMNP"
+user_vars <- "SEX,FER,HHL,PWGTP,AGEP,GASP,GRPIP,JWAP,JWDP,JWMNP"
 # user_vars <- "SEX,PWGTP,MAR,HISPEED"
 key <- "bdb1f6ff2e4982a1da64cd526532aa92dca5581c"
 state <- "05"  # Arkansas

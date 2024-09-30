@@ -31,34 +31,16 @@ get_var_metadata <- function(var_list){
     return(paste("Missing required vars in function call: ", paste(missing_vars, collapse = ", ")))
   }
   else{
-    var_tibbs <- spec_vars |> filter(varname %in% var_list)
+    var_tibbs <- spec_vars |> 
+      filter(varname %in% var_list) 
+    # |>
+    #   clean_names()
     return(var_tibbs)
   }
 }
 
 
-#Testing
-# user_vars <- "PWGTP,SEX,AGEP,GASP,GRPIP,JWAP,JWDP,JWMNP"
-# x <- get_var_metadata(user_vars)
-# print(x)
-
-
-# spec_vars <- tibble(varname = c("PWGTP","AGEP","GASP","GRPIP","JWAP","JWDP",
-#                                 "JWMNP","FER","HHL","HISPEED","JWTRNS","SCH",
-#                                 "SCHL","SEX"),
-#                     type = c("num","num","num","num","num","num","num","chr"
-#                              ,"chr","chr","chr","chr","chr","chr"),
-#                     required = c(TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,
-#                                  FALSE,FALSE,FALSE,FALSE,FALSE,TRUE),
-#                     dt = c(FALSE,FALSE,FALSE,FALSE,TRUE,TRUE,TRUE,FALSE,FALSE,FALSE,
-#                            FALSE,FALSE,FALSE,FALSE))
-#                     
-
-# var_list <- unlist(str_split(user_vars,","))
-# 
-# required_vars <- spec_vars |>
-#   filter(required == TRUE) |>
-#   pull(varname)
-# 
-# missing_vars <- required_vars[!(required_vars %in% var_list)]
-# var_tibbs <- spec_vars |> filter(varname %in% var_list)
+#Test-9002
+user_vars <- "PWGTP,SEX,AGEP,GASP,GRPIP,JWAP,JWDP,JWMNP"
+x <- get_var_metadata(user_vars)
+print(x)
