@@ -6,40 +6,6 @@ library(jsonlite)
 library(httr)
 
 
-#check vars and return a tibble containing metadata
-# check_vars <- function(var_list){
-#   spec_vars <- tibble(varname = c("PWGTP","AGEP","GASP","GRPIP","JWAP","JWDP",
-#                                   "JWMNP","FER","HHL","HISPEED","JWTRNS","SCH",
-#                                   "SCHL","SEX"),
-#                       type = c("num","num","num","num","num","num","num","chr"
-#                                ,"chr","chr","chr","chr","chr","chr"),
-#                       required = c(TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,
-#                                    FALSE,FALSE,FALSE,FALSE,FALSE,TRUE),
-#                       dt = c(FALSE,FALSE,FALSE,FALSE,TRUE,TRUE,TRUE,FALSE,FALSE,FALSE,
-#                              FALSE,FALSE,FALSE,FALSE) 
-#   )
-#   
-#   
-#   
-#   #unlist user specified vars to vector
-#   var_list <- unlist(str_split(var_list,","))
-#   
-#   required_vars <- spec_vars |>
-#     filter(required == TRUE) |>
-#     pull(varname)
-#   
-#   missing_vars <- required_vars[!(required_vars %in% var_list)]
-#   
-#   if (length(missing_vars) > 0){
-#     return( paste("Missing required vars in function call: ", paste(missing_vars, collapse = ", ")))
-#   }
-#   else{
-#     var_tibbs <- spec_vars |> filter(varname %in% var_list)
-#     return(var_tibbs)
-#   }
-# }
-
-
 #return API query as tibble
 return_tibble <- function (content)
 {
@@ -58,9 +24,9 @@ get_PUMS_minimal <- function(geography, user_vars, key=sys.getenv("CENSUS_API_KE
                              survey="acs1", show_call = FALSE)
 {
   #get check_vars metadata
-  var_check <- check_vars(user_vars)
+  var_check <- check_vars(geography,year)
   # If check_vars returns a message (missing vars), stop the function
-  if (is.character(var_check)) {
+  if (!isTRUE(var_check)) {
     stop(var_check)  # Stops and prints the error message from check_vars
   }
   
