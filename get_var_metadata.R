@@ -28,7 +28,7 @@ get_var_metadata <- function(var_list){
   #return tibble for varnames in user provided list. This is the lookup table to
   #be used for checking variable types and factor levels
   if (length(missing_vars) > 0){
-    return(paste("Missing required vars in function call: ", paste(missing_vars, collapse = ", ")))
+    stop(paste("Missing required vars in function call: ", paste(missing_vars, collapse = ", ")))
   }
   else{
     var_tibbs <- spec_vars |> 
