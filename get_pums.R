@@ -9,7 +9,7 @@ library(httr)
 census_api_key("bdb1f6ff2e4982a1da64cd526532aa92dca5581c", install = TRUE, overwrite = TRUE)
 
 
-get_PUMS <- function(geography, user_vars, key=sys.getenv("CENSUS_API_KEY"), 
+get_PUMS <- function(geography, user_vars="AGEP", key=sys.getenv("CENSUS_API_KEY"), 
                              year=2022, state = "*",county = NULL, zcta = NULL, 
                              survey="acs1", show_call = FALSE)
 {
