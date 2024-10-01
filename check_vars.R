@@ -1,5 +1,5 @@
 # year <- 2008
-check_vars <- function(geography, year)
+check_vars <- function(user_vars, geography, year)
 {
   year_range <- seq(2010,2022, by = 1)
   if (!geography %in% c("all","region","division","state")){
