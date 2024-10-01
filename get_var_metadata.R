@@ -10,12 +10,27 @@ get_var_metadata <- function(var_list){
                       type = c("num","num","num","num","num","num","num","chr"
                                ,"chr","chr","chr","chr","chr","chr"),
                       required = c(TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,
-                                   FALSE,FALSE,FALSE,FALSE,FALSE,TRUE),
+                                   FALSE,FALSE,FALSE,FALSE,FALSE,FALSE),
                       dt = c(FALSE,FALSE,FALSE,FALSE,TRUE,TRUE,TRUE,FALSE,FALSE,FALSE,
                              FALSE,FALSE,FALSE,FALSE) 
                       )
   #unlist user specified / API required vars to vector
+  
+  
+  
+  if (!"PWGTP" %in% var_list){
+    var_list <- c(var_list, "PWGTP")
+  }
+  # if (!"AGEP" %in% var_list){
+  #   var_list <- c(var_list, "AGEP")
+  # }
+  # if (!"SEX" %in% var_list){
+  #   var_list <- c(var_list, "SEX")
+  # }
+  
   var_list <- unlist(str_split(var_list,","))
+  var_list <- var_list[var_list != "" & var_list != " "]
+  
   
   #return required varnames as a vector to use in quality checks
   required_vars <- spec_vars |>
@@ -41,6 +56,9 @@ get_var_metadata <- function(var_list){
 
 
 #Test-9002
-# user_vars <- "PWGTP,SEX,AGEP,GASP,GRPIP,JWAP,JWDP,JWMNP"
+# user_vars <- ""
+# x <- spec_vars |>
+#   filter(user_vars %in% spec_vars)
+# 
 # x <- get_var_metadata(user_vars)
 # print(x)
