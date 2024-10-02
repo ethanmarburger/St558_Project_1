@@ -6,8 +6,8 @@ library(jsonlite)
 library(httr)
 
 #store key
-census_api_key("bdb1f6ff2e4982a1da64cd526532aa92dca5581c", install = TRUE, overwrite = TRUE)
-
+# census_api_key("bdb1f6ff2e4982a1da64cd526532aa92dca5581c", install = TRUE, overwrite = TRUE)
+readRenviron("~/.Renviron")
 
 get_PUMS <- function(geography, num_vars = NULL, chr_vars = NULL , key = sys.getenv("CENSUS_API_KEY"), 
                              year = 2022, state = "05",county = NULL, zcta = NULL, 
@@ -61,7 +61,12 @@ get_PUMS <- function(geography, num_vars = NULL, chr_vars = NULL , key = sys.get
   # Set factor levels and types for the tibble
   
   parsed_data <- set_factor_levels_types(parsed_data, var_metadata)
-  
+  # df <- jwap_tibbs |>
+  #     mutate(
+  #       time_parsed = map(jwap_tibbs$jwap, extract_times),  # Extract times
+  #       midpoint = map_chr(time_parsed, calculate_midpoint)  # Calculate midpoints
+  #     )
+
   #return a list with two tibbles
   api_data <- list(api_data = parsed_data, api_metadata = var_metadata)
   
@@ -69,9 +74,9 @@ get_PUMS <- function(geography, num_vars = NULL, chr_vars = NULL , key = sys.get
 }
 
 #Test-9001
-# xnum_vars <- "GASP"
+xnum_vars <- "JWAP,JWDP,JWMNP"
 # xnum_vars <- NULL
-# xchr_vars <- "HISPEED"
+xchr_vars <- "HISPEED"
 # xchr_vars <- NULL
 # geography <- "state"
 # user_vars <- "SEX,FER,HHL,PWGTP,AGEP,GASP,GRPIP,JWAP,JWDP,JWMNP"
@@ -81,5 +86,5 @@ get_PUMS <- function(geography, num_vars = NULL, chr_vars = NULL , key = sys.get
 # state <- "05"  # Arkansas
 # year <- 2022
 
-# pums_data <- get_PUMS(geography,xnum_vars,xchr_vars,key,year,state)
+pums_data <- get_PUMS(geography,xnum_vars,xchr_vars,key,year,state)
 # print(pums_data)
