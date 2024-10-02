@@ -1,4 +1,22 @@
+library(stringr)
+library(dplyr)
+
 #extract times
+
+#JWMNP
+jwmnp <- dt_data
+unique(jwmnp)
+
+jwmnp <- jwmnp |>
+  mutate(jwmnp_dt = duration(JWMNP, "minutes"))
+
+jwmnp_look <- jwmnp |>
+  filter(jwmnp_dt > duration(0, "minutes")) |>
+  # glimpse()
+  is.Date(jwmnp$jwmnp_dt)
+is.duration(jwmnp$jwmnp_dt)
+
+#jwap
 extract_times <- function(jwap_string){
   print(jwap_string)
   
@@ -47,14 +65,14 @@ calculate_midpoint <- function(time_parsed){
 
 
 #Testing
-jwap_tibbs <- tibble(jwap = c("9:40 p.m. to 9:44 p.m.", "10:20 a.m. to 10:24 a.m.", "N/A (not a worker; worker who worked from home)"))
+# jwap_tibbs <- tibble(jwap = c("9:40 p.m. to 9:44 p.m.", "10:20 a.m. to 10:24 a.m.", "N/A (not a worker; worker who worked from home)"))
 # w <- calculate_midpoint(extract_times(jwap_tibbs$jwap))
 
 # time_parsed <- map(jwap_tibbs$jwap, extract_times)
 # midpt <- map_chr(time_parsed, calculate_midpoint)
 
-df <- jwap_tibbs |>
-  mutate(
-    time_parsed = map(jwap_tibbs$jwap, extract_times),  # Extract times
-    midpoint = map_chr(time_parsed, calculate_midpoint)  # Calculate midpoints
-  )
+# df <- jwap_tibbs |>
+#   mutate(
+#     time_parsed = map(jwap_tibbs$jwap, extract_times),  # Extract times
+#     midpoint = map_chr(time_parsed, calculate_midpoint)  # Calculate midpoints
+#   )
