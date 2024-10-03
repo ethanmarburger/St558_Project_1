@@ -1,6 +1,3 @@
-library(httr)
-library(janitor)
-
 #get factor levels
 get_pums_factor_levels <- function(var_names){
   print(var_names)
@@ -29,7 +26,7 @@ set_factor_levels_types <- function(data_tibble, var_tibbs) {
   chr_vars <- var_tibbs|>
     filter(type == "chr") |>
     pull(varname)
-  glimpse(data_tibble)
+  # glimpse(data_tibble)
   # Loop through chr_vars and fetch levels for factor variables
   data_tibble <- data_tibble |>
     mutate(across(all_of(chr_vars), ~ {
@@ -69,13 +66,14 @@ set_factor_levels_types <- function(data_tibble, var_tibbs) {
 
 
 #Checks
-# x <- get_pums_factor_levels("SEX,FER,HHL,PWGTP,AGEP")
+
+# x <- get_pums_factor_levels("JWMNP")
 # devdata_tibbs <- pums_data$api_data
 # glimpse(devdata_tibbs)
 # devvar_tibbs <- pums_data$api_metadata
 # glimpse(devvar_tibbs)
 # devx <- set_factor_levels_types(devdata_tibbs, devvar_tibbs)
 
-# print(unique(devx$HHL))
+# print(unique(devx$JWAP))
 # print(unique(devx$SEX))
 # print(unique(devx$FER))
