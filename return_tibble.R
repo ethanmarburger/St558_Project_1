@@ -1,11 +1,3 @@
-library(dplyr)
-library(readr)
-library(tidyverse)
-library(tidycensus)
-library(jsonlite)
-library(httr)
-
-
 #return API query as tibble
 return_tibble <- function (content)
 {
