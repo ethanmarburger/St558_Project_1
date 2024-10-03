@@ -16,7 +16,6 @@ get_pums_factor_levels <- function(var_names){
       levels_list[[var_name]] <- levels
     }
   }
-  # janitor::clean_names(levels_list)
   return(levels_list)
 }
 
