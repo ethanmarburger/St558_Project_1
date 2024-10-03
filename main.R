@@ -15,10 +15,10 @@ library(tidyverse)
 source("get_pums.R")
 
 
-xnum_vars <- "PWGTP,GASP"
+xnum_vars <- "AGEP, GASP, GRPIP, JWAP, JWDP, JWMNP"
 # xnum_vars <- NULL
 # xchr_vars <- "HISPEED"
-xchr_vars <- "SEX,JWAP,JWDP,JWMNP"
+xchr_vars <- "FER, HHL, HISPEED, JWTRNS, SCH, SCHL, SEX"
 geography <- "state"
 # user_vars <- "SEX,FER,HHL,PWGTP,AGEP,GASP,GRPIP,JWAP,JWDP,JWMNP"
 # user_vars <- "SEX,PWGTP,MAR,HISPEED"
