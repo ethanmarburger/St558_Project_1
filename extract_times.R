@@ -1,22 +1,7 @@
-library(stringr)
-library(dplyr)
+# library(stringr)
+# library(dplyr)
 library(lubridate)
-#extract times
 
-#JWMNP
-# jwmnp <- dt_data
-# unique(jwmnp)
-# 
-# jwmnp <- jwmnp |>
-#   mutate(jwmnp_dt = duration(JWMNP, "minutes"))
-# 
-# jwmnp_look <- jwmnp |>
-#   filter(jwmnp_dt > duration(0, "minutes")) |>
-#   # glimpse()
-#   is.Date(jwmnp$jwmnp_dt)
-#   is.duration(jwmnp$jwmnp_dt)
-
-#jwap
 extract_times <- function(jwap_value){
   # Handle N/A and missing cases
   if (str_detect(as.character(jwap_value), "N/A") | 
