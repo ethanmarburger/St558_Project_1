@@ -7,5 +7,8 @@ return_tibble <- function (content)
   col_names <- parsed_data[1,]
   parsed_data <- parsed_data[-1,]
   parsed_data <- setNames(parsed_data, col_names) 
+  
+  #save data to disk
+  # write_csv(parsed_data, "raw_api.csv")
   return(parsed_data)  
 }
