@@ -3,6 +3,37 @@ title: "Project1"
 author: "Ethan, David"
 format: html
 editor: visual
+render-on-save: true
 ---
 
 ## Project 1
+### Introduction
+The purpose of Project One is to query, summarize, and display data using the census.gov API
+
+### Workflow
+The main workflow consists of
+
+1. Calling a function to get data from the API
+2. Checking the returned data meet criteria defined in the project specification
+3. Getting metadata for specified variables 
+4. Mapping classification levels for factor variables
+5. Mapping time variables to the midpoint for times that have ranges and formatting in 24hour time format
+6.  Returning a tibble of the API
+7. <@Ethan>
+8. <@Ethan>
+9. ...
+
+
+### Design and Implementation
+
+```{r, echo=FALSE}
+
+library(readr)
+library(tidycensus)
+library(jsonlite)
+library(httr)
+library(stringr)
+library(lubridate)
+library(janitor)
+library(tidyverse)
+```
