@@ -80,6 +80,8 @@ year <- 2022
 pums_data <- get_PUMS(geography,user_vars,key,year,state)
 print(pums_data)
 
+#-------------------------------------------------------------------------------
+
 # Function to specify multiple years of survey data (with other variables) and then combine the data into one final tibble
 
 PUMS_multi_year <- function(geography, optional_vars, years,
@@ -142,51 +144,51 @@ plot
 # Census summary function
 
 summary.census <- function(tibble_class_census, 
-                           numeric_veriables = NULL, 
+                           numeric_variables = NULL, 
                            categorical_variables = NULL) {
   
-  # Selecting numeric columns and excluding PWGTP
-  if (is.null(numeric_veriables)) {
-    numeric_veriables <- names(select_if(tibble_class_census, is.numeric))
-    numeric_veriables <- setdiff(numeric_variables, "PWGTP")
-  }
+  # Selecting numerical variables
+  numeric_vector <- names(select_if(tibble_class_census, is.numeric))
   
-  # Selecting categorical columns
-  if (is.null(categorical_variables)) {
+  weight_vector <- NULL
+  weight_vector <-  as.numeric(tibble_class_census$PWGTP)
+  
+  # Selecting categorical variables
   categorical_variables <- names(select_if(tibble_class_census, 
                                            is.character))
-  }
   
   # List to store census summary results 
   census_summary_results <- list()
-
-  # Function to obtain sample mean
-  sample_mean <- function(numeric_vector, weighted_vector) {
-    sum(numeric_vector * weighted_vector) / sum(weighted_vector)
+  
+  # Function to obtain weighted mean
+  weighted_mean <- function(numeric_vector, weight_vector = NULL) {
+    if (!is.null(weight_vector)) {
+      return(sum(numeric_vector * weight_vector, na.rm = TRUE) / 
+               sum(weight_vector, na.rm = TRUE))
+    } else {
+      return(mean(numeric_vector, na.rm = TRUE))
+    }
   }
   
-  # Function to find standard deviation
-  sample_sd <- function(numeric_vector, weighted_vector, sample_mean) {
-    sqrt(sum((numeric_vector^2) * weighted_vector) / sum(weighted_vector) - sample_mean^2)
+  # Function to find weighted standard deviation
+  weighted_sd <- function(numeric_vector, weight_vector = NULL) {
+    sample_mean <- weighted_mean(numeric_vector, weight_vector)
+    if (!is.null(weight_vector)) {
+      return(sqrt(sum(weight_vector * (numeric_vector^2), na.rm = TRUE) / 
+                    sum(weight_vector, na.rm = TRUE) - sample_mean^2))
+    } else {
+      return(sd(numeric_vector, na.rm = TRUE))
+    }
   }
   
   # Numeric summarizer
   for (num_variables in numeric_variables) {
-    variable_data <- tibble_class_census[[num_variables]]
+    var_data <- as.numeric(tibble_class_census[[num_variables]])
+    mean_val <- weighted_mean(var_data, weight_vector)
+    sd_val <- weighted_sd(var_data, weight_vector)
     
-    # Handling additional Weighted vector from PWGTP
-    if (!is.null(weighted_vector)) {
-      mean_value <- sample_mean(variable_data, weighted_vector)
-      sd_value <- sample_sd(variable_data, weighted_vector, mean_value)
-    }
-    else {
-      mean_value <- mean(variable_data)
-      sd_value <- sd(variable_data)
-    }
-    
-    # Storing results in my empty list
-    census_summary_results[[num_variables]] <- list(mean = mean_value, 
-                                                    sd = sd_value)
+    # Storing results in empty list
+    census_summary_results[[num_variables]] <- list(mean = mean_val, sd = sd_val)
   }
   
   # Categorical summarizer 
@@ -198,5 +200,14 @@ summary.census <- function(tibble_class_census,
   return(census_summary_results)
 } 
 
-# Testing summarizer function
+# Testing Summarizer Function
 
+numeric_variables <- c("PWGTP", "state", "year", "HISPEED")
+categorical_variables <- c("SEX", "MAR")
+
+census_summary <- summary.census(tibble_class_census = PUMS_multi_year_test, 
+                                 numeric_variables = numeric_variables, 
+                                 categorical_variables = categorical_variables)
+
+
+print(census_summary)
