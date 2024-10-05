@@ -198,6 +198,11 @@ summary.census <- function(tibble_class_census,
   }
   
   return(census_summary_results)
+  
+  library(ggplot2)
+  ggplot(census_summary_results,
+         aes(x = get(cat_var), y = get(num_var), weight = PWGTP)) +
+    geom_boxplot()
 } 
 
 # Testing Summarizer Function
@@ -208,6 +213,5 @@ categorical_variables <- c("SEX", "MAR")
 census_summary <- summary.census(tibble_class_census = PUMS_multi_year_test, 
                                  numeric_variables = numeric_variables, 
                                  categorical_variables = categorical_variables)
-
 
 print(census_summary)
