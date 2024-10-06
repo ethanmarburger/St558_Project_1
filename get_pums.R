@@ -70,37 +70,39 @@ get_PUMS <- function(geography, num_vars = NULL, chr_vars = NULL , key = sys.get
   datetime_var_chk <- c("JWAP", "JWDP", "JWMNT")
   
   for (varname in datetime_var_chk){
-    if (varname == "JWAP"){
-      parsed_data <- parsed_data |>
-        mutate(
-          JWAP = as.character(JWAP),
-          time_parsed = map(JWAP, extract_times),  # Extract times into a list of parsed times
-          first_24 = map_chr(time_parsed, "first_24"),  # Extract first 24-hour time
-          second_24 = map_chr(time_parsed, "second_24"),  # Extract second 24-hour time
-          midpoint = map_chr(time_parsed, calculate_midpoint)) |>
-        rename(jwap_t = midpoint) |>
-        select(-first_24, -second_24 , -time_parsed)
-    }
-    else if (varname == "JWDP"){
-      parsed_data <- parsed_data |>
-        mutate(
-          JWDP = as.character(JWDP),
-          time_parsed = map(JWDP, extract_times),  # Extract times into a list of parsed times
-          first_24 = map_chr(time_parsed, "first_24"),  # Extract first 24-hour time
-          second_24 = map_chr(time_parsed, "second_24"),  # Extract second 24-hour time
-          midpoint = map_chr(time_parsed, calculate_midpoint)) |>
-        rename(jwdp_t = midpoint) |>
-        select(-first_24, -second_24 , -time_parsed)
-    }
-    else if (varname == "JWMNP"){
-      parsed_data <- parsed_data |>
-        # filter(JWMNP == as.character("0")) |>
-        mutate(
-          jwmnp_c = as.character(JWMNP),
-          jwmnp_n = suppressWarnings(as.numeric(jwmnp_c)),  # Suppress warnings and handle NA conversion
-          jwmnp_mins = ifelse(is.na(jwmnp_n), NA, jwmnp_n)
-        ) |>
-        select(-jwmnp_c, -jwmnp_n)
+    if (varname %in% names(parsed_data)){
+      if (varname == "JWAP"){
+        parsed_data <- parsed_data |>
+          mutate(
+            JWAP = as.character(JWAP),
+            time_parsed = map(JWAP, extract_times),  # Extract times into a list of parsed times
+            first_24 = map_chr(time_parsed, "first_24"),  # Extract first 24-hour time
+            second_24 = map_chr(time_parsed, "second_24"),  # Extract second 24-hour time
+            midpoint = map_chr(time_parsed, calculate_midpoint)) |>
+          rename(jwap_t = midpoint) |>
+          select(-first_24, -second_24 , -time_parsed)
+      }
+      else if (varname == "JWDP"){
+        parsed_data <- parsed_data |>
+          mutate(
+            JWDP = as.character(JWDP),
+            time_parsed = map(JWDP, extract_times),  # Extract times into a list of parsed times
+            first_24 = map_chr(time_parsed, "first_24"),  # Extract first 24-hour time
+            second_24 = map_chr(time_parsed, "second_24"),  # Extract second 24-hour time
+            midpoint = map_chr(time_parsed, calculate_midpoint)) |>
+          rename(jwdp_t = midpoint) |>
+          select(-first_24, -second_24 , -time_parsed)
+      }
+      else if (varname == "JWMNP"){
+        parsed_data <- parsed_data |>
+          # filter(JWMNP == as.character("0")) |>
+          mutate(
+            jwmnp_c = as.character(JWMNP),
+            jwmnp_n = suppressWarnings(as.numeric(jwmnp_c)),  # Suppress warnings and handle NA conversion
+            jwmnp_mins = ifelse(is.na(jwmnp_n), NA, jwmnp_n)
+          ) |>
+          select(-jwmnp_c, -jwmnp_n)
+      }
     }
 }
   # munge dates
@@ -111,7 +113,8 @@ get_PUMS <- function(geography, num_vars = NULL, chr_vars = NULL , key = sys.get
   return(api_data)
 }
 
-#Test-9001
+
+#Test
 # xnum_vars <- "AGEP, GASP, GRPIP, JWAP, JWDP, JWMNP"
 # xnum_vars <- NULL
 # xchr_vars <- "FER, HHL, HISPEED, JWTRNS, SCH, SCHL, SEX"
