@@ -635,20 +635,6 @@ print(census_summary)
 
 ```
 
-###### Testing Multi-year Query Function + Summarizer  - All Variables
-```{r}
-# num_vars <- c("AGEP","GASP", "GRPIP", "JWAP", "JWDP", "JWMNP")
-# num_vars <- NULL
-# chr_vars <- c("FER", "HHL", "HISPEED", "JWTRNS", "SCH", "SCHL", "SEX")
-# chr_vars <- NULL
-# geography <- "state"
-# key <- "bdb1f6ff2e4982a1da64cd526532aa92dca5581c"
-# state <- "05"  # Arkansas
-# years <- c(2022, 2021)
-# PUMS_multi_year_test_all <- PUMS_multi_year(geography, num_vars, chr_vars, years, key, state) 
-
-# print(unique(PUMS_multi_year_test_all$year))
-```
 
 ###### Testing summary with all vars
 ```{r}
@@ -673,7 +659,20 @@ census_summary <- summary.census(tibble_class_census = PUMS_multi_year_test,
 # Printing named lists of means, standard deviations, and categorical counts
 print(census_summary)
 ```
+###### Testing Multi-year Query Function + Summarizer  - All Variables
+```{r}
+num_vars <- c("AGEP","GASP", "GRPIP", "JWAP", "JWDP", "JWMNP")
+# num_vars <- NULL
+chr_vars <- c("FER", "HHL", "HISPEED", "JWTRNS", "SCH", "SCHL", "SEX")
+# chr_vars <- NULL
+geography <- "state"
+key <- "bdb1f6ff2e4982a1da64cd526532aa92dca5581c"
+state <- "05"  # Arkansas
+years <- c(2022, 2021)
+PUMS_multi_year_test_all <- PUMS_multi_year(geography, num_vars, chr_vars, years, key, state)
 
+# print(unique(PUMS_multi_year_test_all$year))
+```
 
 ### 10. Other Analysis - Selected box plots
 ```{r}
