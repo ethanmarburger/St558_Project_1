@@ -25,12 +25,17 @@ The main workflow consists of
 7.  Calling a function that allows the user to specify multiple years of survey data when querying the API and returns results as a tibble
 8.  Making our previous tibble have an additional class of "census"
 9.  Calling a function that produces means and standard deviations for numeric variable(s) and counts for categorical variable(s) in a named list
-10. @David
+10. Create boxplot of selected variables:
+    - Box plot of Age (AGEP) by Sex
+    - Box plot of Broadband Access (HISPEED) by Sex
+    - Box plot of School Enrollment (SCH) by Age (AGEP) < 30
+    - Box plot of Age < 30 vs. School Enrollment by SEX
 
-### Design and Implementation
+### Implementation
+
+#### Include required libraries
 
 ```{r}
-# Calling needed libraries
 library(readr)
 library(tidycensus)
 library(jsonlite)
@@ -47,7 +52,7 @@ readRenviron("~/.Renviron")
 
 ### Data Processing: Workflow Steps 1—6
 
-We created a few helper functions to ensure separation of concerns and modularity in our design. The implementation of these functions is detailed below
+We created a few helper functions to ensure separation of concerns and modularity of code. The implementation of these functions is detailed below
 
 #### Function: `return_tibble`
 
@@ -394,8 +399,7 @@ get_PUMS <- function(geography, num_vars = NULL, chr_vars = NULL , key = sys.get
       }
     }
 }
-  # munge dates
-  # x <- extract_times(response$JWAP)
+
   #return a list with two tibbles
   api_data <- list(api_data = parsed_data, api_metadata = var_metadata, jwmnptst = jwmnptst, tst = tst)
 
@@ -403,14 +407,10 @@ get_PUMS <- function(geography, num_vars = NULL, chr_vars = NULL , key = sys.get
 }
 ```
 
-### Testing API Query Function
-- tests the function for all values and default values (`NULL` case for `num_vars` and `chr_vars`)
-
+##### Testing: API Query Function - all required values
 ```{r}
-# num_vars <- "AGEP, GASP, GRPIP, JWAP, JWDP, JWMNP"
-num_vars <- NULL
-# chr_vars <- "FER, HHL, HISPEED, JWTRNS, SCH, SCHL, SEX"
-chr_vars <- NULL
+num_vars <- "AGEP, GASP, GRPIP, JWAP, JWDP, JWMNP"
+chr_vars <- "FER, HHL, HISPEED, JWTRNS, SCH, SCHL, SEX"
 geography <- "state"
 key <- "bdb1f6ff2e4982a1da64cd526532aa92dca5581c"
 state <- "05"  # Arkansas
@@ -418,9 +418,20 @@ year <- 2022
 
 pums_data <- get_PUMS(geography,num_vars,chr_vars,key,year,state)
 ```
+##### Testing: API Query Function default values (`NULL` case for `num_vars` and `chr_vars`)
+```{r}
+num_vars <- NULL
+chr_vars <- NULL
+geography <- "state"
+key <- "bdb1f6ff2e4982a1da64cd526532aa92dca5581c"
+state <- "05"  # Arkansas
+year <- 2022
 
-#### Testing API return
-##### First 20 rows 
+pums_data_default <- get_PUMS(geography,num_vars,chr_vars,key,year,state)
+```
+
+##### Testing:  API return
+###### First 20 rows 
 ```{r}
 #glimpse the first 20 rows
 pums_data$api_data |>
@@ -428,7 +439,7 @@ pums_data$api_data |>
   glimpse()
 ```
 
-##### Unique factor levels
+###### Testing: Unique factor levels
 ```{r}
 factor_vars <- pums_data$api_data |>
   select(where(is.factor))
@@ -437,8 +448,7 @@ factor_vars |>
   map(unique)
 ```
 
-
-##### Time value mapping
+##### Testing: Time value mapping
 ```{r}
 num_vars <- "JWAP, JWDP, JWMNP"
 # num_vars <- NULL
@@ -458,7 +468,7 @@ time_vars <- pums_data$api_data |>
   glimpse()
 ```
 
-### Calling a function to query multiple years of API data: Workflow Steps 7—8
+### 7 and 8: Calling a function to query multiple years of API data
 
 ```{r}
 PUMS_multi_year <- function(geography, num_vars = NULL, chr_vars = NULL, years,
@@ -509,7 +519,7 @@ PUMS_multi_year <- function(geography, num_vars = NULL, chr_vars = NULL, years,
 
 ```
 
-### Testing Multi-year Query Function - Default Variables
+###### Testing Multi-year Query Function - Default Variables
 
 ```{r}
 # Testing PUMS_multi_year function
@@ -520,13 +530,11 @@ num_vars <- NULL
 chr_vars <- NULL
 PUMS_multi_year_test <- PUMS_multi_year(geography, num_vars, chr_vars, years, key, state)
 print(unique(PUMS_multi_year_test$year))
-# print(PUMS_multi_year_test)
-# Checking for 2021 data
-# print(tail(PUMS_multi_year_test)) 
+
 ```
 
 
-### Writing a Generic Function for Summarizing: Workflow Step 9
+### 9: Writing a Generic Function for Summarizing
 ```{r}
 summary.census <- function(tibble_class_census,
                            numeric_variables = NULL,
@@ -625,10 +633,9 @@ print(census_summary)
 # # Printing named lists of means, standard deviations, and categorical counts
 # print(census_summary)
 
-
 ```
 
-##### Testing Multi-year Query Function + Summarizer  - All Variables
+###### Testing Multi-year Query Function + Summarizer  - All Variables
 ```{r}
 # num_vars <- c("AGEP","GASP", "GRPIP", "JWAP", "JWDP", "JWMNP")
 # num_vars <- NULL
@@ -643,7 +650,7 @@ print(census_summary)
 # print(unique(PUMS_multi_year_test_all$year))
 ```
 
-##### Testing summary with all vars
+###### Testing summary with all vars
 ```{r}
 # Assuming you have PUMS_multi_year_test as your data
 census_summary <- summary.census(tibble_class_census = PUMS_multi_year_test,
@@ -654,8 +661,7 @@ census_summary <- summary.census(tibble_class_census = PUMS_multi_year_test,
 print(census_summary)
 ```
 
-### Testing Summarizer Function
-
+###### Testing Summarizer Function
 ```{r}
 #Defining user variables
 numeric_variables <- c("PWGTP", "AGEP")
@@ -669,7 +675,7 @@ print(census_summary)
 ```
 
 
-### Other Analysis - Selected box plots
+### 10. Other Analysis - Selected box plots
 ```{r}
 
 ggplot(PUMS_multi_year_test_all, aes(x = SEX, y = AGEP)) +
