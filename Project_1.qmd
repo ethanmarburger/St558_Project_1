@@ -509,7 +509,7 @@ PUMS_multi_year <- function(geography, num_vars = NULL, chr_vars = NULL, years,
 
 ```
 
-### Testing Multi-year Query Function
+### Testing Multi-year Query Function - Default Variables
 
 ```{r}
 # Testing PUMS_multi_year function
@@ -519,15 +519,14 @@ years <- c(2022, 2021)
 num_vars <- NULL
 chr_vars <- NULL
 PUMS_multi_year_test <- PUMS_multi_year(geography, num_vars, chr_vars, years, key, state)
-
-print(PUMS_multi_year_test)
-
+print(unique(PUMS_multi_year_test$year))
+# print(PUMS_multi_year_test)
 # Checking for 2021 data
-print(tail(PUMS_multi_year_test)) 
+# print(tail(PUMS_multi_year_test)) 
 ```
 
-### Writing a Generic Function for Summarizing: Workflow Step 9
 
+### Writing a Generic Function for Summarizing: Workflow Step 9
 ```{r}
 summary.census <- function(tibble_class_census,
                            numeric_variables = NULL,
@@ -536,12 +535,11 @@ summary.census <- function(tibble_class_census,
   # Selecting numerical variables
   numeric_vector <- names(select_if(tibble_class_census, is.numeric))
 
-  weight_vector <- NULL
-  weight_vector <-  as.numeric(tibble_class_census$PWGTP)
+  # Weight vector
+  weight_vector <- as.numeric(tibble_class_census$PWGTP)
 
   # Selecting categorical variables
-  categorical_variables <- names(select_if(tibble_class_census,
-                                           is.character))
+  categorical_vector <- names(select_if(tibble_class_census, is.character))
 
   # List to store census summary results
   census_summary_results <- list()
@@ -568,37 +566,100 @@ summary.census <- function(tibble_class_census,
   }
 
   # Numeric summarizer
-  for (num_variables in numeric_variables) {
-    var_data <- as.numeric(tibble_class_census[[num_variables]])
+  for (num_var in numeric_variables) {
+    var_data <- as.numeric(tibble_class_census[[num_var]])
     mean_val <- weighted_mean(var_data, weight_vector)
     sd_val <- weighted_sd(var_data, weight_vector)
 
-    # Storing results in empty list
-    census_summary_results[[num_variables]] <- list(mean = mean_val, sd = sd_val)
+    # Storing results in list
+    census_summary_results[[num_var]] <- list(mean = mean_val, sd = sd_val)
   }
 
   # Categorical summarizer
-  for (cat_variables in categorical_variables) {
-    counts <- table(census_summary_results[[cat_variables]])
-    census_summary_results[[cat_variables]] <- counts
+  for (cat_var in categorical_variables) {
+    counts <- table(tibble_class_census[[cat_var]])
+    census_summary_results[[cat_var]] <- counts
   }
 
-  library(ggplot2)
-  ggplot(census_summary_results,
-         aes(x = get(cat_var), y = get(num_var), weight = PWGTP)) +
-    geom_boxplot()
+  # Plotting a boxplot of numeric variable by categorical variable
+  if (!is.null(numeric_variables) && !is.null(categorical_variables)) {
+    for (num_var in numeric_variables) {
+      for (cat_var in categorical_variables) {
+        ggplot(tibble_class_census, aes(x = .data[[cat_var]], y = .data[[num_var]])) +
+          geom_boxplot() +
+          labs(title = paste("Boxplot of", num_var, "by", cat_var),
+               x = cat_var,
+               y = num_var) +
+          theme_minimal() -> plot
+
+        print(plot)  # Print the plot
+      }
+    }
+  }
+  else print("Not plotting")
 
   return(census_summary_results)
 }
+
+# Defining user variables
+numeric_variables <- c("PWGTP", "AGEP")
+categorical_variables <- c("SEX")
+
+# Testing Summarizer Function
+census_summary <- summary.census(tibble_class_census = PUMS_multi_year_test,
+                                 numeric_variables = numeric_variables,
+                                 categorical_variables = categorical_variables)
+
+# Printing named lists of means, standard deviations, and categorical counts
+print(census_summary)
+
+
+#Defining user variables
+# numeric_variables <- c("PWGTP", "AGEP")
+# categorical_variables <- c("SEX")
+# 
+# # Testing Summarizer Function
+# census_summary <- summary.census(tibble_class_census = PUMS_multi_year_test,
+#                                  numeric_variables = numeric_variables,
+#                                  categorical_variables = categorical_variables)
+# # Printing named lists of means, standard deviations, and categorical counts
+# print(census_summary)
+
+
+```
+
+##### Testing Multi-year Query Function + Summarizer  - All Variables
+```{r}
+# num_vars <- c("AGEP","GASP", "GRPIP", "JWAP", "JWDP", "JWMNP")
+# num_vars <- NULL
+# chr_vars <- c("FER", "HHL", "HISPEED", "JWTRNS", "SCH", "SCHL", "SEX")
+# chr_vars <- NULL
+# geography <- "state"
+# key <- "bdb1f6ff2e4982a1da64cd526532aa92dca5581c"
+# state <- "05"  # Arkansas
+# years <- c(2022, 2021)
+# PUMS_multi_year_test_all <- PUMS_multi_year(geography, num_vars, chr_vars, years, key, state) 
+
+# print(unique(PUMS_multi_year_test_all$year))
+```
+
+##### Testing summary with all vars
+```{r}
+# Assuming you have PUMS_multi_year_test as your data
+census_summary <- summary.census(tibble_class_census = PUMS_multi_year_test,
+                                 numeric_variables = num_vars,
+                                 categorical_variables = chr_vars)
+
+# Printing named lists of means, standard deviations, and categorical counts
+print(census_summary)
 ```
 
 ### Testing Summarizer Function
 
 ```{r}
-Defining user variables
-numeric_variables <- c("PWGTP", "state", "year", "HISPEED")
-categorical_variables <- c("SEX", "MAR")
-
+#Defining user variables
+numeric_variables <- c("PWGTP", "AGEP")
+categorical_variables <- c("SEX")
 # Testing Summarizer Function
 census_summary <- summary.census(tibble_class_census = PUMS_multi_year_test,
                                  numeric_variables = numeric_variables,
@@ -606,3 +667,43 @@ census_summary <- summary.census(tibble_class_census = PUMS_multi_year_test,
 # Printing named lists of means, standard deviations, and categorical counts
 print(census_summary)
 ```
+
+
+### Other Analysis - Selected box plots
+```{r}
+
+ggplot(PUMS_multi_year_test_all, aes(x = SEX, y = AGEP)) +
+  geom_boxplot() +
+  ggtitle("Box plot of Age (AGEP) by Sex") +
+  theme_minimal()
+
+
+ggplot(PUMS_multi_year_test_all, aes(x = HISPEED, y = AGEP)) +
+  geom_boxplot() +
+  ggtitle("Box plot of Broadband Access (HISPEED) by Sex") +
+  theme_minimal()
+
+agep_lt30 <- PUMS_multi_year_test_all |>
+  filter(AGEP < 30, !is.na(SCH))
+
+agep_lt30$SCH <- recode(agep_lt30$SCH,
+                        "N/A (less than 3 years old)" = "N/A (Age < 3)",
+                        "Yes, private school or college or home school" = "Private/Home School",
+                        "No, has not attended in the last 3 months" = "Not Attending",
+                        "Yes, public school or public college" = "Public School")
+
+agep_lt30$SCH <- factor(agep_lt30$SCH)
+
+ggplot(agep_lt30, aes(x = SCH, y = AGEP)) +
+  geom_boxplot() +
+  ggtitle("Box plot of School Enrollment (SCH) by Age (AGEP) < 30") +
+  theme_minimal()
+
+ggplot(agep_lt30, aes(x = SCH , y = AGEP)) +
+  geom_boxplot() +
+  facet_wrap(~ SEX) +  # Create separate plots for each level of SEX
+  theme_minimal() +
+  ggtitle("Box plot of Age < 30 vs. School Enrollment by SEX")
+
+```
+
