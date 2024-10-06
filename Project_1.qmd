@@ -35,7 +35,7 @@ The main workflow consists of
 
 #### Include required libraries
 
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(readr)
 library(tidycensus)
 library(jsonlite)
