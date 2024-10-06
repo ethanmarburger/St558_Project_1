@@ -1,6 +1,6 @@
 ---
 title: "Project 1"
-author: "Ethan Marburger, David Pressely"
+author: "Ethan Marburger, David Pressley"
 format: html
 editor: visual
 render-on-save: true
