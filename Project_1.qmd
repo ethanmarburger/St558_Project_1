@@ -33,8 +33,6 @@ The main workflow consists of
 
 ### Implementation
 
-#### Include required libraries
-
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(readr)
 library(tidycensus)
@@ -46,7 +44,7 @@ library(janitor)
 library(tidyverse)
 
 #store key
-census_api_key("bdb1f6ff2e4982a1da64cd526532aa92dca5581c", install = TRUE, overwrite = TRUE)
+# census_api_key("bdb1f6ff2e4982a1da64cd526532aa92dca5581c", install = TRUE, overwrite = TRUE)
 readRenviron("~/.Renviron")
 ```
 
