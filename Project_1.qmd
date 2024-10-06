@@ -297,7 +297,7 @@ calculate_midpoint <- function(time_parsed){
 
 ```{r}
 
-get_PUMS <- function(geography, num_vars = NULL, chr_vars = NULL , key = sys.getenv("CENSUS_API_KEY"),
+get_PUMS <- function(geography, num_vars = NULL, chr_vars = NULL, key = sys.getenv("CENSUS_API_KEY"),
                              year = 2022, state = "05",county = NULL, zcta = NULL,
                              survey = "acs1", show_call = FALSE)
 {
@@ -436,18 +436,19 @@ time_vars <- pums_data$api_data |>
 ### Calling a function to query multiple years of API data: Workflow Steps 7—8
 
 ```{r}
-PUMS_multi_year <- function(geography, optional_vars, years,
+PUMS_multi_year <- function(geography, num_vars = NULL, chr_vars = NULL, years,
                             key = Sys.getenv("CENSUS_API_KEY"),
                             state = "*", county = NULL, zcta = NULL,
-                            survey = "acs1", show_call = FASLE) {
+                            survey = "acs1", show_call = FALSE) {
   
   # Empty list to store data for each year
   list_data <- list()
   
-  # Looping through each year and calling the get_PMS function
+  # Looping through each year and calling the get_PUMS function
   for (year in years) {
     year_data <- get_PUMS(geography = geography,
-                          optional_vars = optional_vars,
+                          num_vars = num_vars,
+                          chr_vars = chr_vars,
                           key = key,
                           year = year,
                           state = state,
@@ -456,22 +457,31 @@ PUMS_multi_year <- function(geography, optional_vars, years,
                           survey = survey,
                           show_call = show_call)
     
+    # Extract the 'api_data' part of the year_data list
+    year_data <- year_data$api_data
+    
+    # Ensure year_data is a tibble/data.frame
+    if (is.list(year_data)) {
+      year_data <- as_tibble(year_data)
+    }
+    
     # Adding new column to data
     year_data <- year_data |>
       mutate(year = as.character(year))
     
-    # Adding data for year to our empty list
+    # Adding data for the year to our list
     list_data[[as.character(year)]] <- year_data
   }
   
-  # Combing all yearly data into a tibble
+  # Combine all yearly data into a tibble
   years_tibble <- bind_rows(list_data)
   
-  # Added a "census" class, workflow step 8
+  # Add a "census" class, workflow step 8
   class(years_tibble) <- c("census", class(years_tibble))
   
   return(years_tibble)
 }
+
 ```
 
 ### Testing Multi-year Query Function
@@ -481,8 +491,9 @@ PUMS_multi_year <- function(geography, optional_vars, years,
 
 # Defining specific years to query
 years <- c(2022, 2021)
-
-PUMS_multi_year_test <- PUMS_multi_year(geography, user_vars, years, key, state)
+num_vars <- "AGEP, GASP, GRPIP, JWAP, JWDP, JWMNP"
+chr_vars <- "FER, HHL, HISPEED, JWTRNS, SCH, SCHL, SEX"
+PUMS_multi_year_test <- PUMS_multi_year(geography, num_vars, chr_vars, years, key, state)
 
 print(PUMS_multi_year_test)
 
