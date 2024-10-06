@@ -29,8 +29,7 @@ The main workflow consists of
 
 ### Design and Implementation
 
-```{r, echo=FALSE}
-
+```{r}
 # Calling needed libraries
 library(readr)
 library(tidycensus)
@@ -40,51 +39,22 @@ library(stringr)
 library(lubridate)
 library(janitor)
 library(tidyverse)
+
+#store key
+census_api_key("bdb1f6ff2e4982a1da64cd526532aa92dca5581c", install = TRUE, overwrite = TRUE)
+readRenviron("~/.Renviron")
 ```
 
 ### Data Processing: Workflow Steps 1—6
 
+We created a few helper functions to ensure separation of concerns and modularity in our design. The implementation of these functions is detailed below
+
+#### Function: `return_tibble`
+
+-   returns data from an API call to census.gov as a tibble
+
 ```{r}
-
-#store API key
-census_api_key("bdb1f6ff2e4982a1da64cd526532aa92dca5581c", install = TRUE, overwrite = TRUE)
-
-
-#Calling a function to get data from the API
-get_PUMS <- function(geography, optional_vars, key=sys.getenv("CENSUS_API_KEY"), year=2022,
-                     state = "*",county = NULL, zcta = NULL, survey="acs1", show_call = FALSE){
-  #get base URL
-  baseURL <- paste("https://api.census.gov/data",
-                   as.character(year), "acs",
-                   survey, "pums", sep = "/")
-  
-  #get parameters from function args
-  paramsURL <- paste0("?get=", optional_vars, "&for=", geography, ":", state, "&key=", key)
-  apiURL <- (paste0(baseURL,paramsURL))
-  
-  #check
-  print(apiURL)
-  
-  response <- httr::GET(apiURL)
-  
-  #Data Checks
-  if (status_code(response) == 200){
-    #specify vars to return
-    allowed_vars <- c("PWGTP","MAR","AGEP","GASP","GRPIP","JWAP","JWDP","JWMNP","FER","HHL","HISPEED","JWAP","JWDP","JWTRNS","SCH","SCHL","SEX")
-    optional_vars <- unlist(strsplit(optional_vars, ","))
-    if (!all(optional_vars %in% allowed_vars)) {
-      stop("User provided variable list only allows for variables: PWGTP,MAR,AGEP,GASP,GRPIP,JWAP,JWDP,JWMNP,FER,HHL,HISPEED,JWAP,JWDP,JWTRNS,SCH,SCHL,and SEX")
-    }
-    else{
-      return_tibble(response$content)
-    }
-  }
-  else {
-    stop("Something wrong with query: ", status_code(response))
-  }
-  
-}
-
+#return API query as tibble
 return_tibble <- function (content)
 {
   parsed_data <- as_tibble(fromJSON(rawToChar(content)))
@@ -93,23 +63,374 @@ return_tibble <- function (content)
   col_names <- parsed_data[1,]
   parsed_data <- parsed_data[-1,]
   parsed_data <- setNames(parsed_data, col_names) 
+  
+  #save data to disk
+  # write_csv(parsed_data, "raw_api.csv")
   return(parsed_data)  
 }
 ```
 
-### Testing API Query Function
+#### Function: `get_var_metadata`
+- dynamically gets variable metadata and returns a lookup table for specified variables in 
+  function `get_PUMS`
+- this function is currently of limited utility, but works for the current project. 
+- the original idea was to create a metadata table from the project specification 
+that could be used to lookup and drive the logic for data processing.
+  - It needs work to be part of a consistent metadata driven approach, but works minimally 
+    for this project
 
 ```{r}
-#Defining function arguments
+#get metadata from specification for user provided variables
+#metadata can be used for further checks, type conversion, and factor leveling
+#get_var_metadata currently checks for required variables in a user provided
+#function call, but no other checks
+get_var_metadata <- function(var_list){
+  spec_vars <- tibble(varname = c("PWGTP","AGEP","GASP","GRPIP","JWAP","JWDP",
+                                  "JWMNP","FER","HHL","HISPEED","JWTRNS","SCH",
+                                  "SCHL","SEX"),
+                      type = c("num","num","num","num","chr","chr","num","chr"
+                               ,"chr","chr","chr","chr","chr","chr"),
+                      required = c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,
+                                   TRUE,TRUE,TRUE,TRUE,TRUE,TRUE),
+                      dt = c(FALSE,FALSE,FALSE,FALSE,TRUE,TRUE,TRUE,FALSE,FALSE,FALSE,
+                             FALSE,FALSE,FALSE,FALSE)
+                      )
+  
+  #unlist user specified / API required vars to vector
+  if (!"PWGTP" %in% var_list){
+    var_list <- c(var_list, "PWGTP")
+  }
+
+  var_list <- unlist(str_split(var_list, ","))
+  var_list <- str_trim(var_list)
+  var_list <- var_list[var_list != "" & var_list != " "]
+
+
+  #return required varnames as a vector to use in quality checks
+  user_vars <- spec_vars |>
+    filter(varname %in% var_list)
+
+  #return tibble for varnames in user provided list. This is the lookup table to
+  #be used for checking variable types and factor levels
+  return(user_vars)
+  }
+
+```
+
+#### Function: `check_vars`
+-   checks `geography` and `year` against specified values
+
+```{r}
+check_vars <- function(user_vars, geography, year)
+{
+  year_range <- seq(2010,2022, by = 1)
+  if (!geography %in% c("all","region","division","state")){
+    stop(paste(geography), " is not an allowed value for the geography variable. Options are: all, region, division, state")
+  } 
+  if (!year %in% year_range){
+    stop(paste(year), " is not an allowed value for the year variable. Options are between 2010 - 2022")
+  } 
+  else if (year == 2020){
+    stop(paste(year), " is not available from census.gov")
+  }
+  else{
+    return(TRUE)
+  }
+}
+```
+
+#### Function: `get_pums_factor_levels` and `set_factor_levels_types`
+
+-   getter function gets factor levels and returns them as a list. Initial designs included this, but are not referenced in subsequent data processing steps. Kept as part of project for posterity
+-   setter function checks, processes, and sets classification levels for factor variables.
+    -   returns a tibble
+
+```{r}
+#get factor levels
+get_pums_factor_levels <- function(var_names){
+  print(var_names)
+  #initialize list
+  levels_list <- list()
+  var_names <- unlist(strsplit(var_names,","))
+  print(var_names)
+  #get base URL
+  for (var_name in var_names){
+    url <- paste0("https://api.census.gov/data/2022/acs/acs1/pums/variables/",var_name,".json")
+    print(url)
+    response <- GET(url)
+    if (status_code(response) == 200) {
+      data <- fromJSON(content(response,"text"))
+      levels <- data$values$item
+      levels_list[[var_name]] <- levels
+    }
+  }
+  return(levels_list)
+}
+
+#get factor levels and set types
+set_factor_levels_types <- function(data_tibble, var_tibbs) {
+  # Process character variables and set them as factors with levels
+  chr_vars <- var_tibbs|>
+    filter(type == "chr") |>
+    pull(varname)
+  
+  # Loop through chr_vars and fetch levels for factor variables
+  data_tibble <- data_tibble |>
+    mutate(across(all_of(chr_vars), ~ {
+      var_name <- cur_column()  # Get the current column name
+      url <- paste0("https://api.census.gov/data/2022/acs/acs1/pums/variables/", var_name, ".json")
+
+      response <- GET(url)
+      if (status_code(response) == 200) {
+        data <- fromJSON(content(response, "text", encoding = "UTF-8"))
+        
+        if (!is.null(data$values) && "item" %in% names(data$values)) {
+          levels <- names(data$values$item)
+          labels <- data$values$item
+          return(factor(.x, levels = levels, labels = labels))
+          
+        } else {
+          warning(paste("Levels for", var_name, "not found in API response"))
+          return(.x)  # Return unchanged column
+        }
+      } else {
+        warning(paste("Failed to fetch data for", var_name, ": HTTP status", status_code(response)))
+        return(.x)  # Return unchanged column
+      }
+    }))
+
+  # Process numeric variables and convert them to numeric
+  num_vars <- var_tibbs |>
+    filter(type == "num") |>
+    pull(varname)
+
+  data_tibble <- data_tibble |> 
+    mutate(across(all_of(num_vars), as.numeric))
+
+  return(data_tibble)
+}
+
+
+#Checks
+
+# x <- get_pums_factor_levels("JWMNP")
+# devdata_tibbs <- pums_data$api_data
+# glimpse(devdata_tibbs)
+# devvar_tibbs <- pums_data$api_metadata
+# glimpse(devvar_tibbs)
+# devx <- set_factor_levels_types(devdata_tibbs, devvar_tibbs)
+
+# print(unique(devx$JWAP))
+# print(unique(devx$SEX))
+# print(unique(devx$FER))
+```
+
+#### Function: `extract_times`, `convert_to_24hr`, `calculate_midpoint`
+
+-   these functions are dependent on one another. They convert factored time variables that contain a specific string pattern into a 24 hour time format representing the midpoint of the range
+    -   Example: the factored string `3:00 p.m. to 3:04 p.m.` would be returned from this function as `15:02`
+
+```{r}
+extract_times <- function(jwap_value){
+  # Handle N/A and missing cases
+  if (str_detect(as.character(jwap_value), "N/A") | 
+      is.na(jwap_value) |
+      str_detect(as.character(jwap_value), "NA")) {
+        return(list(first_24 = "NA", second_24 = "NA"))
+  }
+  
+  # Split the string into parts (e.g., "9:40 p.m. to 9:44 p.m.")
+  parts <- str_split(as.character(jwap_value), " ")[[1]]
+  first_time <- parts[1]
+  first_ampm <- str_replace_all(parts[2], "\\.", "")
+  second_time <- parts[4]
+  second_ampm <- str_replace_all(parts[5], "\\.", "")
+  
+  # Convert both times to 24-hour format
+  first_24 <- convert_to_24_hour(first_time, first_ampm)
+  second_24 <- convert_to_24_hour(second_time, second_ampm)
+  
+  return(list(first_24 = first_24, second_24 = second_24))
+}
+
+convert_to_24_hour <- function(time_str, ampm_str) {
+  # Clean up the AM/PM string by removing periods
+  full_time_str <- paste(time_str, ampm_str)  # Combine time and cleaned AM/PM
+  time_parsed <- parse_date_time(full_time_str, "I:M p")  # Parse AM/PM time
+  return(format(time_parsed, "%H:%M"))  # Convert to 24-hour format
+  
+}
+
+calculate_midpoint <- function(time_parsed){
+  second_24 <- as.POSIXct(time_parsed$second_24, format = "%H:%M")
+  first_24 <- as.POSIXct(time_parsed$first_24, format = "%H:%M")
+  
+  #handle NA
+  if(is.na(second_24) | is.na(first_24)) {
+    return(NA)
+  }
+  
+  midpoint <- first_24 + (second_24 - first_24)/2
+  # print(format(midpoint, "%H:%M"))
+  return(format(midpoint, "%H:%M"))
+}
+
+
+#Testing
+# df <- pums_data$api_data |>
+#   mutate(
+#     time_parsed = map(JWAP, extract_times),  # Extract times into a list of parsed times
+#     first_24 = map_chr(time_parsed, "first_24"),  # Extract first 24-hour time
+#     second_24 = map_chr(time_parsed, "second_24"),  # Extract second 24-hour time
+#     midpoint = map_chr(time_parsed, calculate_midpoint)  # Calculate midpoint between times
+#   )
+ # filtered_data <- pums_data$api_data |>
+   # filter(str_detect(as.character(JWAP), "N/A") | is.na(JWAP) | str_detect(as.character(JWAP), "NA"))|>
+   # filter(!(as.character(JWAP) %in% (c("N/A","NA", "", " ")))) |>
+   # slice_head(n=100)
+   
+```
+
+#### Function: `get_PUMS`
+
+-   This function serves as the function to get, check, factor, and format variables according to project specifications
+
+```{r}
+
+get_PUMS <- function(geography, num_vars = NULL, chr_vars = NULL , key = sys.getenv("CENSUS_API_KEY"),
+                             year = 2022, state = "05",county = NULL, zcta = NULL,
+                             survey = "acs1", show_call = FALSE)
+{
+  #munge var lists
+  if(is.null(num_vars)){
+    num_vars <- c("PWGTP", "AGEP")
+  }
+  if(is.null(chr_vars)){
+    chr_vars <- c("SEX")
+  }
+
+  user_vars <-c(num_vars, chr_vars)
+
+  #get var metadata
+  var_metadata <- get_var_metadata(user_vars)
+
+  #get vars string for API call after returning metadata
+  api_var_string <- paste(var_metadata$varname,collapse = ",")
+
+  #check vars values in range
+  var_check <- check_vars(user_vars,geography,year)
+  # If check_vars returns a message (missing vars), stop the function
+  if (!isTRUE(var_check)) {
+    stop(var_check)  # Stops and prints the error message from check_vars
+  }
+
+  #get base URL
+  baseURL <- paste("https://api.census.gov/data",
+                   as.character(year), "acs",
+                   survey, "pums", sep = "/")
+
+
+  paramsURL <- paste0("?get=", api_var_string, "&for=", geography, ":", state, "&key=", key)
+  apiURL <- (paste0(baseURL,paramsURL))
+
+  #check
+  print(apiURL)
+
+  response <- httr::GET(apiURL)
+
+  # Convert API response to a tibble
+  parsed_data <- return_tibble(response$content)
+
+  # Set factor levels and types for the tibble
+  parsed_data <- set_factor_levels_types(parsed_data, var_metadata)
+  
+  #check
+  datetime_var_chk <- c("JWAP", "JWDP", "JWMNT")
+  # Extract times into a list of parsed times and chain together
+  # to return 24hr formatted midpoint times
+  for (varname in datetime_var_chk){
+    if (varname == "JWAP"){
+      parsed_data <- parsed_data |>
+        mutate(
+          JWAP = as.character(JWAP),
+          time_parsed = map(JWAP, extract_times),
+          first_24 = map_chr(time_parsed, "first_24"), 
+          second_24 = map_chr(time_parsed, "second_24"),  
+          midpoint = map_chr(time_parsed, calculate_midpoint)) |>
+        rename(jwap_t = midpoint) |>
+        select(-first_24, -second_24 , -time_parsed)
+    }
+    else if (varname == "JWDP"){
+      
+      parsed_data <- parsed_data |>
+        mutate(
+          JWDP = as.character(JWDP),
+          time_parsed = map(JWDP, extract_times),  
+          first_24 = map_chr(time_parsed, "first_24"),  
+          second_24 = map_chr(time_parsed, "second_24"),  
+          midpoint = map_chr(time_parsed, calculate_midpoint)) |>
+        rename(jwdp_t = midpoint) |>
+        select(-first_24, -second_24 , -time_parsed)
+    }
+    else if (varname == "JWMNP"){
+      parsed_data <- parsed_data |>
+        mutate(
+          jwmnp_c = as.character(JWMNP),
+          jwmnp_n = suppressWarnings(as.numeric(jwmnp_c)),  
+          jwmnp_mins = ifelse(is.na(jwmnp_n), NA, jwmnp_n)
+        ) |>
+        select(-jwmnp_c, -jwmnp_n)
+    }
+}
+  #return a list with two tibbles
+  api_data <- list(api_data = parsed_data, api_metadata = var_metadata)
+
+  return(api_data)
+}
+```
+
+### Testing API Query Function
+- tests the function for all values and default values (`NULL` case for `num_vars` and `chr_vars`)
+
+```{r}
+num_vars <- "AGEP, GASP, GRPIP, JWAP, JWDP, JWMNP"
+# num_vars <- NULL
+chr_vars <- "FER, HHL, HISPEED, JWTRNS, SCH, SCHL, SEX"
+# chr_vars <- NULL
 geography <- "state"
-user_vars <- "SEX,PWGTP,MAR,HISPEED"
 key <- "bdb1f6ff2e4982a1da64cd526532aa92dca5581c"
 state <- "05"  # Arkansas
 year <- 2022
 
-#Testing get_PUMS function
-pums_data <- get_PUMS(geography,user_vars,key,year,state)
-print(pums_data)
+pums_data <- get_PUMS(geography,num_vars,chr_vars,key,year,state)
+```
+
+#### Testing API return
+##### First 20 rows 
+```{r}
+#glimpse the first 20 rows
+pums_data$api_data |>
+  head(20) |>
+  glimpse()
+```
+
+##### Unique factor levels
+```{r}
+factor_vars <- pums_data$api_data |>
+  select(where(is.factor))
+
+factor_vars |> 
+  map(unique)
+```
+
+
+##### Time value mapping
+```{r}
+time_vars <- pums_data$api_data |>
+  select(jwap_t, jwdp_t) |>
+  filter(!is.na(jwap_t) & !is.na(jwdp_t)) |>
+  head(20) |>
+  glimpse()
 ```
 
 ### Calling a function to query multiple years of API data: Workflow Steps 7—8
