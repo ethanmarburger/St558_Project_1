@@ -297,7 +297,7 @@ calculate_midpoint <- function(time_parsed){
 
 ```{r}
 
-get_PUMS <- function(geography, num_vars = NULL, chr_vars = NULL, key = sys.getenv("CENSUS_API_KEY"),
+get_PUMS <- function(geography, num_vars = NULL, chr_vars = NULL , key = sys.getenv("CENSUS_API_KEY"),
                              year = 2022, state = "05",county = NULL, zcta = NULL,
                              survey = "acs1", show_call = FALSE)
 {
@@ -338,52 +338,66 @@ get_PUMS <- function(geography, num_vars = NULL, chr_vars = NULL, key = sys.gete
 
   response <- httr::GET(apiURL)
 
-  # Convert API response to a tibble
-  parsed_data <- return_tibble(response$content)
+  # Convert API response to a tibble |>
+  #set factor levels and convert data types
 
+  parsed_data <- return_tibble(response$content)
+  jwmnptst <- return_tibble(response$content)
+  # |>
+  #   clean_names()
   # Set factor levels and types for the tibble
+
+  tst <- set_factor_levels_types(parsed_data, var_metadata)
+  
   parsed_data <- set_factor_levels_types(parsed_data, var_metadata)
   
-  #check
+  # df <- parsed_data$JWAP |>
+  #     mutate(
+  #       time_parsed = map(JWAP, extract_times),  # Extract times
+  #       midpoint = map_chr(time_parsed, calculate_midpoint)  # Calculate midpoints
+  #     )
   datetime_var_chk <- c("JWAP", "JWDP", "JWMNT")
-  # Extract times into a list of parsed times and chain together
-  # to return 24hr formatted midpoint times
+  
   for (varname in datetime_var_chk){
-    if (varname == "JWAP"){
-      parsed_data <- parsed_data |>
-        mutate(
-          JWAP = as.character(JWAP),
-          time_parsed = map(JWAP, extract_times),
-          first_24 = map_chr(time_parsed, "first_24"), 
-          second_24 = map_chr(time_parsed, "second_24"),  
-          midpoint = map_chr(time_parsed, calculate_midpoint)) |>
-        rename(jwap_t = midpoint) |>
-        select(-first_24, -second_24 , -time_parsed)
-    }
-    else if (varname == "JWDP"){
-      
-      parsed_data <- parsed_data |>
-        mutate(
-          JWDP = as.character(JWDP),
-          time_parsed = map(JWDP, extract_times),  
-          first_24 = map_chr(time_parsed, "first_24"),  
-          second_24 = map_chr(time_parsed, "second_24"),  
-          midpoint = map_chr(time_parsed, calculate_midpoint)) |>
-        rename(jwdp_t = midpoint) |>
-        select(-first_24, -second_24 , -time_parsed)
-    }
-    else if (varname == "JWMNP"){
-      parsed_data <- parsed_data |>
-        mutate(
-          jwmnp_c = as.character(JWMNP),
-          jwmnp_n = suppressWarnings(as.numeric(jwmnp_c)),  
-          jwmnp_mins = ifelse(is.na(jwmnp_n), NA, jwmnp_n)
-        ) |>
-        select(-jwmnp_c, -jwmnp_n)
+    if (varname %in% names(parsed_data)){
+      if (varname == "JWAP"){
+        parsed_data <- parsed_data |>
+          mutate(
+            JWAP = as.character(JWAP),
+            time_parsed = map(JWAP, extract_times),  # Extract times into a list of parsed times
+            first_24 = map_chr(time_parsed, "first_24"),  # Extract first 24-hour time
+            second_24 = map_chr(time_parsed, "second_24"),  # Extract second 24-hour time
+            midpoint = map_chr(time_parsed, calculate_midpoint)) |>
+          rename(jwap_t = midpoint) |>
+          select(-first_24, -second_24 , -time_parsed)
+      }
+      else if (varname == "JWDP"){
+        parsed_data <- parsed_data |>
+          mutate(
+            JWDP = as.character(JWDP),
+            time_parsed = map(JWDP, extract_times),  # Extract times into a list of parsed times
+            first_24 = map_chr(time_parsed, "first_24"),  # Extract first 24-hour time
+            second_24 = map_chr(time_parsed, "second_24"),  # Extract second 24-hour time
+            midpoint = map_chr(time_parsed, calculate_midpoint)) |>
+          rename(jwdp_t = midpoint) |>
+          select(-first_24, -second_24 , -time_parsed)
+      }
+      else if (varname == "JWMNP"){
+        parsed_data <- parsed_data |>
+          # filter(JWMNP == as.character("0")) |>
+          mutate(
+            jwmnp_c = as.character(JWMNP),
+            jwmnp_n = suppressWarnings(as.numeric(jwmnp_c)),  # Suppress warnings and handle NA conversion
+            jwmnp_mins = ifelse(is.na(jwmnp_n), NA, jwmnp_n)
+          ) |>
+          select(-jwmnp_c, -jwmnp_n)
+      }
     }
 }
+  # munge dates
+  # x <- extract_times(response$JWAP)
   #return a list with two tibbles
-  api_data <- list(api_data = parsed_data, api_metadata = var_metadata)
+  api_data <- list(api_data = parsed_data, api_metadata = var_metadata, jwmnptst = jwmnptst, tst = tst)
 
   return(api_data)
 }
@@ -393,10 +407,10 @@ get_PUMS <- function(geography, num_vars = NULL, chr_vars = NULL, key = sys.gete
 - tests the function for all values and default values (`NULL` case for `num_vars` and `chr_vars`)
 
 ```{r}
-num_vars <- "AGEP, GASP, GRPIP, JWAP, JWDP, JWMNP"
-# num_vars <- NULL
-chr_vars <- "FER, HHL, HISPEED, JWTRNS, SCH, SCHL, SEX"
-# chr_vars <- NULL
+# num_vars <- "AGEP, GASP, GRPIP, JWAP, JWDP, JWMNP"
+num_vars <- NULL
+# chr_vars <- "FER, HHL, HISPEED, JWTRNS, SCH, SCHL, SEX"
+chr_vars <- NULL
 geography <- "state"
 key <- "bdb1f6ff2e4982a1da64cd526532aa92dca5581c"
 state <- "05"  # Arkansas
@@ -426,6 +440,17 @@ factor_vars |>
 
 ##### Time value mapping
 ```{r}
+num_vars <- "JWAP, JWDP, JWMNP"
+# num_vars <- NULL
+# chr_vars <- "FER, HHL, HISPEED, JWTRNS, SCH, SCHL, SEX"
+chr_vars <- NULL
+geography <- "state"
+key <- "bdb1f6ff2e4982a1da64cd526532aa92dca5581c"
+state <- "05"  # Arkansas
+year <- 2022
+
+pums_data <- get_PUMS(geography,num_vars,chr_vars,key,year,state)
+
 time_vars <- pums_data$api_data |>
   select(jwap_t, jwdp_t) |>
   filter(!is.na(jwap_t) & !is.na(jwdp_t)) |>
@@ -491,8 +516,8 @@ PUMS_multi_year <- function(geography, num_vars = NULL, chr_vars = NULL, years,
 
 # Defining specific years to query
 years <- c(2022, 2021)
-num_vars <- "AGEP, GASP, GRPIP, JWAP, JWDP, JWMNP"
-chr_vars <- "FER, HHL, HISPEED, JWTRNS, SCH, SCHL, SEX"
+num_vars <- NULL
+chr_vars <- NULL
 PUMS_multi_year_test <- PUMS_multi_year(geography, num_vars, chr_vars, years, key, state)
 
 print(PUMS_multi_year_test)
@@ -504,79 +529,79 @@ print(tail(PUMS_multi_year_test))
 ### Writing a Generic Function for Summarizing: Workflow Step 9
 
 ```{r}
-summary.census <- function(tibble_class_census, 
-                           numeric_variables = NULL, 
+summary.census <- function(tibble_class_census,
+                           numeric_variables = NULL,
                            categorical_variables = NULL) {
-  
+
   # Selecting numerical variables
   numeric_vector <- names(select_if(tibble_class_census, is.numeric))
-  
+
   weight_vector <- NULL
   weight_vector <-  as.numeric(tibble_class_census$PWGTP)
-  
+
   # Selecting categorical variables
-  categorical_variables <- names(select_if(tibble_class_census, 
+  categorical_variables <- names(select_if(tibble_class_census,
                                            is.character))
-  
-  # List to store census summary results 
+
+  # List to store census summary results
   census_summary_results <- list()
-  
+
   # Function to obtain weighted mean
   weighted_mean <- function(numeric_vector, weight_vector = NULL) {
     if (!is.null(weight_vector)) {
-      return(sum(numeric_vector * weight_vector, na.rm = TRUE) / 
+      return(sum(numeric_vector * weight_vector, na.rm = TRUE) /
                sum(weight_vector, na.rm = TRUE))
     } else {
       return(mean(numeric_vector, na.rm = TRUE))
     }
   }
-  
+
   # Function to find weighted standard deviation
   weighted_sd <- function(numeric_vector, weight_vector = NULL) {
     sample_mean <- weighted_mean(numeric_vector, weight_vector)
     if (!is.null(weight_vector)) {
-      return(sqrt(sum(weight_vector * (numeric_vector^2), na.rm = TRUE) / 
+      return(sqrt(sum(weight_vector * (numeric_vector^2), na.rm = TRUE) /
                     sum(weight_vector, na.rm = TRUE) - sample_mean^2))
     } else {
       return(sd(numeric_vector, na.rm = TRUE))
     }
   }
-  
+
   # Numeric summarizer
   for (num_variables in numeric_variables) {
     var_data <- as.numeric(tibble_class_census[[num_variables]])
     mean_val <- weighted_mean(var_data, weight_vector)
     sd_val <- weighted_sd(var_data, weight_vector)
-    
+
     # Storing results in empty list
     census_summary_results[[num_variables]] <- list(mean = mean_val, sd = sd_val)
   }
-  
-  # Categorical summarizer 
+
+  # Categorical summarizer
   for (cat_variables in categorical_variables) {
     counts <- table(census_summary_results[[cat_variables]])
     census_summary_results[[cat_variables]] <- counts
   }
-  
+
   library(ggplot2)
   ggplot(census_summary_results,
          aes(x = get(cat_var), y = get(num_var), weight = PWGTP)) +
     geom_boxplot()
-  
+
   return(census_summary_results)
-} 
+}
 ```
 
 ### Testing Summarizer Function
 
 ```{r}
-# Defining user variables
+Defining user variables
 numeric_variables <- c("PWGTP", "state", "year", "HISPEED")
 categorical_variables <- c("SEX", "MAR")
 
 # Testing Summarizer Function
-census_summary <- summary.census(tibble_class_census = PUMS_multi_year_test, 
-                                 numeric_variables = numeric_variables, 
+census_summary <- summary.census(tibble_class_census = PUMS_multi_year_test,
+                                 numeric_variables = numeric_variables,
                                  categorical_variables = categorical_variables)
 # Printing named lists of means, standard deviations, and categorical counts
 print(census_summary)
